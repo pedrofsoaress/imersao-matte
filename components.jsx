@@ -125,7 +125,6 @@ const MATTE_PARTICLE_PALETTE = [
 
 function ParticleTextEffect({
   words = ["MATTE", "IMERSÃO", "IA", "UBERLÂNDIA", "11 · 06"],
-  height = 460,
   pixelSteps = 6,
   switchFrames = 240,
 }) {
@@ -277,10 +276,11 @@ function ParticleTextEffect({
 
     const sizeCanvas = () => {
       const w = Math.max(320, container.clientWidth);
+      const h = Math.max(240, container.clientHeight);
       canvas.width = Math.floor(w);
-      canvas.height = Math.floor(height);
+      canvas.height = Math.floor(h);
       canvas.style.width = w + "px";
-      canvas.style.height = height + "px";
+      canvas.style.height = h + "px";
     };
 
     const animate = () => {
@@ -322,6 +322,17 @@ function ParticleTextEffect({
 
     const onResize = () => { sizeCanvas(); nextWord(words[wordIndexRef.current]); };
     window.addEventListener("resize", onResize);
+    let ro = null;
+    if (typeof ResizeObserver !== "undefined") {
+      let lastW = 0, lastH = 0;
+      ro = new ResizeObserver(() => {
+        const w = container.clientWidth, h = container.clientHeight;
+        if (Math.abs(w - lastW) < 2 && Math.abs(h - lastH) < 2) return;
+        lastW = w; lastH = h;
+        onResize();
+      });
+      ro.observe(container);
+    }
 
     const md = (e) => {
       mouseRef.current.isPressed = true;
@@ -356,6 +367,7 @@ function ParticleTextEffect({
 
     return () => {
       io.disconnect();
+      if (ro) ro.disconnect();
       window.removeEventListener("resize", onResize);
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
       canvas.removeEventListener("mousedown", md);
@@ -366,9 +378,11 @@ function ParticleTextEffect({
   }, []);
 
   return (
-    <div ref={containerRef} style={{ width: "100%", position: "relative" }}>
+    <div ref={containerRef} style={{
+      width: "100%", height: "100%", position: "relative",
+    }}>
       <canvas ref={canvasRef} style={{
-        display: "block", width: "100%", height: `${height}px`,
+        display: "block", width: "100%", height: "100%",
         background: "var(--bg)", cursor: "crosshair",
       }} />
     </div>

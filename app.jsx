@@ -590,48 +590,45 @@ function Apresentador({ t }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// IDENTIDADE — particle text effect
+// IDENTIDADE — full-bleed particle text effect
 // ─────────────────────────────────────────────────────────────────────
 function Identidade() {
   return (
     <section style={{
-      padding: "clamp(56px, 9vw, 110px) var(--pad)",
+      position: "relative",
+      width: "100%",
+      height: "clamp(440px, 82vh, 800px)",
+      padding: 0,
+      margin: 0,
       borderBottom: "1px solid var(--line)",
       background: "var(--bg)",
       overflow: "hidden",
     }}>
-      <div style={{ maxWidth: "var(--maxw)", margin: "0 auto" }}>
-        <Reveal>
-          <span className="mono" style={{
-            fontSize: 11, letterSpacing: ".18em", textTransform: "uppercase",
-            color: "var(--muted)",
-          }}>§ Identidade</span>
-        </Reveal>
-        <Reveal delay={80}>
-          <div style={{
-            marginTop: 28,
-            border: "1px solid var(--line-2)",
-            borderRadius: 4,
-            overflow: "hidden",
-            background: "var(--bg)",
-          }}>
-            <ParticleTextEffect
-              words={["MATTE", "IMERSÃO", "IA", "UBERLÂNDIA", "11 · 06"]}
-              height={460}
-            />
-          </div>
-        </Reveal>
-        <Reveal delay={140}>
-          <p className="mono" style={{
-            marginTop: 18,
-            fontSize: 11, letterSpacing: ".16em", textTransform: "uppercase",
-            color: "var(--muted)",
-            textAlign: "center",
-          }}>
-            uma tarde · uma sala · um plano pra sair com ele pronto
-          </p>
-        </Reveal>
-      </div>
+      <ParticleTextEffect
+        words={["MATTE", "IMERSÃO", "IA", "UBERLÂNDIA", "11 · 06"]}
+      />
+      <span aria-hidden className="mono" style={{
+        position: "absolute",
+        top: "clamp(18px, 3vw, 32px)",
+        left: "var(--pad)",
+        fontSize: 11, letterSpacing: ".18em", textTransform: "uppercase",
+        color: "var(--muted)",
+        pointerEvents: "none",
+        zIndex: 2,
+      }}>§ Identidade</span>
+      <p className="mono" style={{
+        position: "absolute",
+        bottom: "clamp(18px, 3vw, 32px)",
+        left: 0, right: 0,
+        margin: 0,
+        fontSize: 11, letterSpacing: ".16em", textTransform: "uppercase",
+        color: "var(--muted)",
+        textAlign: "center",
+        pointerEvents: "none",
+        zIndex: 2,
+      }}>
+        uma tarde · uma sala · um plano pra sair com ele pronto
+      </p>
     </section>
   );
 }
@@ -1263,12 +1260,12 @@ function App() {
       <TopBar t={t} onCTA={onCTA} />
       <main>
         <Hero t={t} onCTA={onCTA} />
+        <Identidade />
         <TickerStrip t={t} />
         <Problema />
         <Programa onCTA={onCTA} />
         <ProvaSocial t={t} />
         <Apresentador t={t} />
-        <Identidade />
         <Incluso t={t} />
         <Preco t={t} onCTA={onCTA} />
         <CTAFinal t={t} onCTA={onCTA} />
