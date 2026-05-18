@@ -124,13 +124,32 @@ function Hero({ t, onCTA }) {
         {/* meta row */}
         <Reveal style={{
           display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center",
-          marginBottom: 32,
+          marginBottom: 24,
         }}>
           <Tape>Imersão presencial · Uberlândia</Tape>
           <span className="mono" style={{
             color: "var(--muted)", fontSize: 11, letterSpacing: ".15em",
             textTransform: "uppercase",
           }}>11 jun · {t.vagasTotal} vagas</span>
+        </Reveal>
+
+        {/* tema do evento */}
+        <Reveal delay={40} style={{ marginBottom: 32 }}>
+          <span className="mono" style={{
+            display: "block",
+            fontSize: 10, letterSpacing: ".22em", textTransform: "uppercase",
+            color: "var(--muted)", marginBottom: 10,
+          }}>Tema</span>
+          <div className="serif" style={{
+            fontSize: "clamp(22px, 3.4vw, 38px)",
+            lineHeight: 1.1, letterSpacing: "-0.015em",
+            color: "var(--ink-2)",
+            textWrap: "balance",
+          }}>
+            <span className="it" style={{ color: "var(--accent)" }}>IA &amp; Growth</span>
+            <span style={{ color: "var(--muted)", margin: "0 .4em" }}>·</span>
+            Como transformar curiosos em compradores
+          </div>
         </Reveal>
 
         {/* headline */}
