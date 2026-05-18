@@ -312,13 +312,17 @@ function ParticleTextEffect({
     };
 
     sizeCanvas();
-    // ensure font is loaded before first paint so glyph shapes match
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(() => { nextWord(words[0]); });
-    } else {
-      nextWord(words[0]);
-    }
-    animate();
+    // Defer heavy init (particle creation + first animation frame) until the
+    // main thread is idle. This keeps Three.js + React mount off the hot path
+    // and dramatically reduces TBT during initial page load.
+    const cancelIdleInit = whenIdle(() => {
+      const start = () => { nextWord(words[0]); animate(); };
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(start);
+      } else {
+        start();
+      }
+    }, 2500);
 
     const onResize = () => { sizeCanvas(); nextWord(words[wordIndexRef.current]); };
     window.addEventListener("resize", onResize);
@@ -366,6 +370,7 @@ function ParticleTextEffect({
     io.observe(container);
 
     return () => {
+      cancelIdleInit();
       io.disconnect();
       if (ro) ro.disconnect();
       window.removeEventListener("resize", onResize);
@@ -390,11 +395,63 @@ function ParticleTextEffect({
 }
 
 // ─── shader animation (matte-tinted radial line waves) ────────────
+// Lazy-load Three.js once on demand. Returns a Promise that resolves to THREE.
+let threeLoaderPromise = null;
+function loadThree() {
+  if (typeof THREE !== "undefined") return Promise.resolve(window.THREE);
+  if (threeLoaderPromise) return threeLoaderPromise;
+  threeLoaderPromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "/build/vendor/three-0.160.0.min.js";
+    s.async = true;
+    s.onload = () => resolve(window.THREE);
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  return threeLoaderPromise;
+}
+
+// Schedule a callback when the main thread is idle (or fallback to setTimeout).
+function whenIdle(cb, timeoutMs = 2000) {
+  if (typeof requestIdleCallback !== "undefined") {
+    const id = requestIdleCallback(cb, { timeout: timeoutMs });
+    return () => cancelIdleCallback(id);
+  }
+  const id = setTimeout(cb, 300);
+  return () => clearTimeout(id);
+}
+
 function ShaderAnimation({ opacity = 0.45 }) {
   const containerRef = React.useRef(null);
   React.useEffect(() => {
-    if (!containerRef.current || typeof THREE === "undefined") return;
-    const container = containerRef.current;
+    if (!containerRef.current) return;
+    let cleanupShader = () => {};
+    let cancelled = false;
+
+    // Defer init until the browser is idle, then lazy-load Three.js,
+    // then start the shader. Keeps the critical path light for FCP/LCP/TBT.
+    const cancelIdle = whenIdle(async () => {
+      if (cancelled) return;
+      try { await loadThree(); } catch (_) { return; }
+      if (cancelled || !containerRef.current) return;
+      cleanupShader = startShader(containerRef.current, opacity);
+    });
+
+    return () => { cancelled = true; cancelIdle(); cleanupShader(); };
+  }, [opacity]);
+
+  return (
+    <div ref={containerRef} aria-hidden style={{
+      position: "absolute", inset: 0,
+      width: "100%", height: "100%",
+      opacity,
+      pointerEvents: "none",
+      mixBlendMode: "screen",
+    }} />
+  );
+}
+
+function startShader(container, opacity) {
 
     const vertexShader = `
       void main() { gl_Position = vec4(position, 1.0); }
@@ -484,17 +541,6 @@ function ShaderAnimation({ opacity = 0.45 }) {
       material.dispose();
       renderer.dispose();
     };
-  }, []);
-
-  return (
-    <div ref={containerRef} aria-hidden style={{
-      position: "absolute", inset: 0,
-      width: "100%", height: "100%",
-      opacity,
-      pointerEvents: "none",
-      mixBlendMode: "screen",
-    }} />
-  );
 }
 
 // ─── wordmark ──────────────────────────────────────────────────────

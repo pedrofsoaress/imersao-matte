@@ -12,9 +12,12 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link rel="preconnect" href="https://unpkg.com" crossorigin />
 <link rel="dns-prefetch" href="https://connect.facebook.net" />
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<!-- Google Fonts: load async (non-blocking) to fix render-blocking issue -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" media="print" onload="this.media='all';this.onload=null;" />
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" /></noscript>
 
 <style>
   :root{
@@ -101,7 +104,31 @@ src="https://www.facebook.com/tr?id=1217340336556598&ev=PageView&noscript=1"
 <!-- End Meta Pixel Code -->
 </head>
 <body class="grain">
-  <div id="root"></div>
+  <div id="root">
+    <!-- Static fallback hero: shown while React/JS load.
+         Mirrors the React Hero so the user sees the headline + CTA immediately
+         (cuts LCP dramatically on slow networks). Replaced by React on mount. -->
+    <section style="padding:24px var(--pad) 60px;border-bottom:1px solid var(--line);">
+      <div style="max-width:var(--maxw);margin:0 auto;">
+        <div style="display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);padding:6px 10px;border:1px solid var(--accent);border-radius:999px;margin-bottom:24px;">
+          <span aria-hidden style="width:5px;height:5px;border-radius:50%;background:var(--accent);"></span>
+          Imersão presencial · Uberlândia
+        </div>
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Tema</div>
+        <div class="serif" style="font-size:clamp(22px,3.4vw,38px);line-height:1.1;letter-spacing:-0.015em;color:var(--ink-2);margin-bottom:32px;">
+          <span class="it" style="color:var(--accent);">IA &amp; Growth</span>
+          <span style="color:var(--muted);margin:0 .4em;">·</span>
+          Como transformar curiosos em compradores
+        </div>
+        <h1 class="serif" style="font-size:clamp(40px,9vw,116px);line-height:.96;letter-spacing:-0.025em;margin:0;font-weight:400;text-wrap:balance;">
+          Sua empresa está crescendo na <span class="it" style="color:var(--accent);">velocidade</span> que você quer<span style="color:var(--accent);">?</span>
+        </h1>
+        <p style="margin:28px 0 0;max-width:640px;font-size:clamp(16px,2.2vw,19px);line-height:1.55;color:var(--ink-2);">
+          Se a resposta for não, a sua <span style="color:var(--ink);">operação comercial</span> provavelmente está te segurando. Nesta imersão você aprende, na prática, como usar IA para vender mais, atender melhor e converter mais leads — em uma única tarde.
+        </p>
+      </div>
+    </section>
+  </div>
 
   <noscript>
     <div class="nojs">
@@ -111,11 +138,8 @@ src="https://www.facebook.com/tr?id=1217340336556598&ev=PageView&noscript=1"
     </div>
   </noscript>
 
-  <!-- Speaker notes are not used here, but placeholder kept for the editor pipeline.  -->
-
-  <script defer src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
-  <script defer src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
-  <script defer src="https://unpkg.com/three@0.160.0/build/three.min.js" crossorigin="anonymous"></script>
+  <script defer src="/build/vendor/react-18.3.1.min.js"></script>
+  <script defer src="/build/vendor/react-dom-18.3.1.min.js"></script>
 
   <script defer src="/build/tweaks-panel.js"></script>
   <script defer src="/build/components.js"></script>
