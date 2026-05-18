@@ -590,6 +590,53 @@ function Apresentador({ t }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// IDENTIDADE — particle text effect
+// ─────────────────────────────────────────────────────────────────────
+function Identidade() {
+  return (
+    <section style={{
+      padding: "clamp(56px, 9vw, 110px) var(--pad)",
+      borderBottom: "1px solid var(--line)",
+      background: "var(--bg)",
+      overflow: "hidden",
+    }}>
+      <div style={{ maxWidth: "var(--maxw)", margin: "0 auto" }}>
+        <Reveal>
+          <span className="mono" style={{
+            fontSize: 11, letterSpacing: ".18em", textTransform: "uppercase",
+            color: "var(--muted)",
+          }}>§ Identidade</span>
+        </Reveal>
+        <Reveal delay={80}>
+          <div style={{
+            marginTop: 28,
+            border: "1px solid var(--line-2)",
+            borderRadius: 4,
+            overflow: "hidden",
+            background: "var(--bg)",
+          }}>
+            <ParticleTextEffect
+              words={["MATTE", "IMERSÃO", "IA", "UBERLÂNDIA", "11 · 06"]}
+              height={460}
+            />
+          </div>
+        </Reveal>
+        <Reveal delay={140}>
+          <p className="mono" style={{
+            marginTop: 18,
+            fontSize: 11, letterSpacing: ".16em", textTransform: "uppercase",
+            color: "var(--muted)",
+            textAlign: "center",
+          }}>
+            uma tarde · uma sala · um plano pra sair com ele pronto
+          </p>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // DIFERENCIAIS / INCLUSO
 // ─────────────────────────────────────────────────────────────────────
 function Incluso({ t }) {
@@ -1221,6 +1268,7 @@ function App() {
         <Programa onCTA={onCTA} />
         <ProvaSocial t={t} />
         <Apresentador t={t} />
+        <Identidade />
         <Incluso t={t} />
         <Preco t={t} onCTA={onCTA} />
         <CTAFinal t={t} onCTA={onCTA} />

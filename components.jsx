@@ -115,6 +115,266 @@ function CTA({ children, onClick, variant = "primary", size = "md", style, full 
   );
 }
 
+// ─── particle text effect (canvas, matte palette) ─────────────────
+const MATTE_PARTICLE_PALETTE = [
+  { r: 212, g: 26,  b: 91  }, // #D41A5B accent
+  { r: 232, g: 72,  b: 128 }, // #E84880 hot pink
+  { r: 232, g: 93,  b: 60  }, // #E85D3C ember
+  { r: 242, g: 239, b: 233 }, // #F2EFE9 ink highlight
+];
+
+function ParticleTextEffect({
+  words = ["MATTE", "IMERSÃO", "IA", "UBERLÂNDIA", "11 · 06"],
+  height = 460,
+  pixelSteps = 6,
+  switchFrames = 240,
+}) {
+  const containerRef = React.useRef(null);
+  const canvasRef = React.useRef(null);
+  const animationRef = React.useRef(null);
+  const particlesRef = React.useRef([]);
+  const frameCountRef = React.useRef(0);
+  const wordIndexRef = React.useRef(0);
+  const mouseRef = React.useRef({ x: 0, y: 0, isPressed: false, isRightClick: false });
+
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const randomPos = (cx, cy, mag) => {
+      const rx = Math.random() * canvas.width;
+      const ry = Math.random() * canvas.height;
+      const dx = rx - cx, dy = ry - cy;
+      const m = Math.sqrt(dx*dx + dy*dy);
+      if (m > 0) return { x: cx + (dx / m) * mag, y: cy + (dy / m) * mag };
+      return { x: cx + mag, y: cy };
+    };
+
+    class Particle {
+      constructor() {
+        this.pos = { x: 0, y: 0 };
+        this.vel = { x: 0, y: 0 };
+        this.acc = { x: 0, y: 0 };
+        this.target = { x: 0, y: 0 };
+        this.closeEnoughTarget = 100;
+        this.maxSpeed = 1.0;
+        this.maxForce = 0.1;
+        this.particleSize = 10;
+        this.isKilled = false;
+        this.startColor = { r: 0, g: 0, b: 0 };
+        this.targetColor = { r: 0, g: 0, b: 0 };
+        this.colorWeight = 0;
+        this.colorBlendRate = 0.01;
+      }
+      move() {
+        let prox = 1;
+        const dx0 = this.pos.x - this.target.x;
+        const dy0 = this.pos.y - this.target.y;
+        const dist = Math.sqrt(dx0*dx0 + dy0*dy0);
+        if (dist < this.closeEnoughTarget) prox = dist / this.closeEnoughTarget;
+        const tx = this.target.x - this.pos.x;
+        const ty = this.target.y - this.pos.y;
+        const mag = Math.sqrt(tx*tx + ty*ty);
+        const towards = { x: 0, y: 0 };
+        if (mag > 0) {
+          towards.x = (tx / mag) * this.maxSpeed * prox;
+          towards.y = (ty / mag) * this.maxSpeed * prox;
+        }
+        const steer = { x: towards.x - this.vel.x, y: towards.y - this.vel.y };
+        const sm = Math.sqrt(steer.x*steer.x + steer.y*steer.y);
+        if (sm > 0) {
+          steer.x = (steer.x / sm) * this.maxForce;
+          steer.y = (steer.y / sm) * this.maxForce;
+        }
+        this.acc.x += steer.x; this.acc.y += steer.y;
+        this.vel.x += this.acc.x; this.vel.y += this.acc.y;
+        this.pos.x += this.vel.x; this.pos.y += this.vel.y;
+        this.acc.x = 0; this.acc.y = 0;
+      }
+      draw(ctx) {
+        if (this.colorWeight < 1.0) {
+          this.colorWeight = Math.min(this.colorWeight + this.colorBlendRate, 1.0);
+        }
+        const c = {
+          r: Math.round(this.startColor.r + (this.targetColor.r - this.startColor.r) * this.colorWeight),
+          g: Math.round(this.startColor.g + (this.targetColor.g - this.startColor.g) * this.colorWeight),
+          b: Math.round(this.startColor.b + (this.targetColor.b - this.startColor.b) * this.colorWeight),
+        };
+        ctx.fillStyle = `rgb(${c.r}, ${c.g}, ${c.b})`;
+        ctx.fillRect(this.pos.x, this.pos.y, 2, 2);
+      }
+      kill(w, h) {
+        if (this.isKilled) return;
+        const rp = randomPos(w / 2, h / 2, (w + h) / 2);
+        this.target.x = rp.x; this.target.y = rp.y;
+        this.startColor = {
+          r: this.startColor.r + (this.targetColor.r - this.startColor.r) * this.colorWeight,
+          g: this.startColor.g + (this.targetColor.g - this.startColor.g) * this.colorWeight,
+          b: this.startColor.b + (this.targetColor.b - this.startColor.b) * this.colorWeight,
+        };
+        this.targetColor = { r: 10, g: 9, b: 8 };
+        this.colorWeight = 0;
+        this.isKilled = true;
+      }
+    }
+
+    const nextWord = (word) => {
+      const off = document.createElement("canvas");
+      off.width = canvas.width;
+      off.height = canvas.height;
+      const octx = off.getContext("2d");
+      octx.fillStyle = "white";
+      const fs = Math.max(48, Math.round(canvas.width * 0.11));
+      octx.font = `700 ${fs}px Geist, "Helvetica Neue", Arial, sans-serif`;
+      octx.textAlign = "center";
+      octx.textBaseline = "middle";
+      octx.fillText(word, canvas.width / 2, canvas.height / 2);
+
+      const data = octx.getImageData(0, 0, canvas.width, canvas.height).data;
+      const newColor = MATTE_PARTICLE_PALETTE[Math.floor(Math.random() * MATTE_PARTICLE_PALETTE.length)];
+      const particles = particlesRef.current;
+      let pi = 0;
+
+      const coords = [];
+      for (let i = 0; i < data.length; i += pixelSteps * 4) coords.push(i);
+      for (let i = coords.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [coords[i], coords[j]] = [coords[j], coords[i]];
+      }
+
+      for (const ci of coords) {
+        if (data[ci + 3] > 0) {
+          const x = (ci / 4) % canvas.width;
+          const y = Math.floor(ci / 4 / canvas.width);
+          let p;
+          if (pi < particles.length) {
+            p = particles[pi];
+            p.isKilled = false;
+            pi++;
+          } else {
+            p = new Particle();
+            const rp = randomPos(canvas.width / 2, canvas.height / 2, (canvas.width + canvas.height) / 2);
+            p.pos.x = rp.x; p.pos.y = rp.y;
+            p.maxSpeed = Math.random() * 6 + 4;
+            p.maxForce = p.maxSpeed * 0.05;
+            p.particleSize = Math.random() * 6 + 6;
+            p.colorBlendRate = Math.random() * 0.0275 + 0.0025;
+            particles.push(p);
+          }
+          p.startColor = {
+            r: p.startColor.r + (p.targetColor.r - p.startColor.r) * p.colorWeight,
+            g: p.startColor.g + (p.targetColor.g - p.startColor.g) * p.colorWeight,
+            b: p.startColor.b + (p.targetColor.b - p.startColor.b) * p.colorWeight,
+          };
+          p.targetColor = newColor;
+          p.colorWeight = 0;
+          p.target.x = x; p.target.y = y;
+        }
+      }
+      for (let i = pi; i < particles.length; i++) particles[i].kill(canvas.width, canvas.height);
+    };
+
+    const sizeCanvas = () => {
+      const w = Math.max(320, container.clientWidth);
+      canvas.width = Math.floor(w);
+      canvas.height = Math.floor(height);
+      canvas.style.width = w + "px";
+      canvas.style.height = height + "px";
+    };
+
+    const animate = () => {
+      const ctx = canvas.getContext("2d");
+      const particles = particlesRef.current;
+      ctx.fillStyle = "rgba(10, 9, 8, 0.14)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.move();
+        p.draw(ctx);
+        if (p.isKilled && (p.pos.x < 0 || p.pos.x > canvas.width || p.pos.y < 0 || p.pos.y > canvas.height)) {
+          particles.splice(i, 1);
+        }
+      }
+      if (mouseRef.current.isPressed && mouseRef.current.isRightClick) {
+        particles.forEach((p) => {
+          const dx = p.pos.x - mouseRef.current.x;
+          const dy = p.pos.y - mouseRef.current.y;
+          if (Math.sqrt(dx*dx + dy*dy) < 50) p.kill(canvas.width, canvas.height);
+        });
+      }
+      frameCountRef.current++;
+      if (frameCountRef.current % switchFrames === 0) {
+        wordIndexRef.current = (wordIndexRef.current + 1) % words.length;
+        nextWord(words[wordIndexRef.current]);
+      }
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    sizeCanvas();
+    // ensure font is loaded before first paint so glyph shapes match
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => { nextWord(words[0]); });
+    } else {
+      nextWord(words[0]);
+    }
+    animate();
+
+    const onResize = () => { sizeCanvas(); nextWord(words[wordIndexRef.current]); };
+    window.addEventListener("resize", onResize);
+
+    const md = (e) => {
+      mouseRef.current.isPressed = true;
+      mouseRef.current.isRightClick = e.button === 2;
+      const r = canvas.getBoundingClientRect();
+      mouseRef.current.x = e.clientX - r.left;
+      mouseRef.current.y = e.clientY - r.top;
+    };
+    const mu = () => { mouseRef.current.isPressed = false; mouseRef.current.isRightClick = false; };
+    const mm = (e) => {
+      const r = canvas.getBoundingClientRect();
+      mouseRef.current.x = e.clientX - r.left;
+      mouseRef.current.y = e.clientY - r.top;
+    };
+    const cm = (e) => e.preventDefault();
+    canvas.addEventListener("mousedown", md);
+    canvas.addEventListener("mouseup", mu);
+    canvas.addEventListener("mousemove", mm);
+    canvas.addEventListener("contextmenu", cm);
+
+    let running = true;
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting && !running) { running = true; animate(); }
+        else if (!e.isIntersecting && running) {
+          running = false;
+          if (animationRef.current) cancelAnimationFrame(animationRef.current);
+        }
+      });
+    }, { threshold: 0 });
+    io.observe(container);
+
+    return () => {
+      io.disconnect();
+      window.removeEventListener("resize", onResize);
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      canvas.removeEventListener("mousedown", md);
+      canvas.removeEventListener("mouseup", mu);
+      canvas.removeEventListener("mousemove", mm);
+      canvas.removeEventListener("contextmenu", cm);
+    };
+  }, []);
+
+  return (
+    <div ref={containerRef} style={{ width: "100%", position: "relative" }}>
+      <canvas ref={canvasRef} style={{
+        display: "block", width: "100%", height: `${height}px`,
+        background: "var(--bg)", cursor: "crosshair",
+      }} />
+    </div>
+  );
+}
+
 // ─── shader animation (matte-tinted radial line waves) ────────────
 function ShaderAnimation({ opacity = 0.45 }) {
   const containerRef = React.useRef(null);
