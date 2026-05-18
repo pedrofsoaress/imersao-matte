@@ -823,6 +823,10 @@ function Preco({ t, onCTA }) {
                 fontSize: 11, letterSpacing: ".12em", color: "var(--muted)",
                 textTransform: "uppercase", marginTop: 4,
               }}>à vista · 1× cartão ou Pix</div>
+              <div className="mono" style={{
+                fontSize: 11, letterSpacing: ".12em", color: "var(--accent)",
+                textTransform: "uppercase", marginTop: 6,
+              }}>ou 12× de R$ 9,97 no cartão</div>
 
               <div style={{ marginTop: 28 }}>
                 <CTA size="lg" variant="accent" full onClick={onCTA}>
@@ -1230,7 +1234,7 @@ function InscricaoModal({ open, onClose, t }) {
                   <span className="mono" style={{
                     fontSize: 10, color: "var(--muted)",
                     letterSpacing: ".1em", textAlign: "center",
-                  }}>pagamento seguro · cartão ou pix</span>
+                  }}>pagamento seguro · ou 12× de R$ 9,97 no cartão</span>
                 </div>
               </form>
             </>
