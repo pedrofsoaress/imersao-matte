@@ -1078,13 +1078,17 @@ function Footer({ t }) {
 // ─────────────────────────────────────────────────────────────────────
 // MODAL DE INSCRIÇÃO
 // ─────────────────────────────────────────────────────────────────────
+const WEBHOOK_URL = "https://services.leadconnectorhq.com/hooks/ScbU1A9uedBaW6TOWJZj/webhook-trigger/20cac0d7-f0d3-4a50-8ddb-b7628f32fdb9";
+const CHECKOUT_URL = "https://payfast.greenn.com.br/cxjp7vq/offer/zTl8ol";
+
 function InscricaoModal({ open, onClose, t }) {
   const [step, setStep] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ nome: "", email: "", whatsapp: "", empresa: "" });
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    if (open) { setStep(0); setErrors({}); }
+    if (open) { setStep(0); setErrors({}); setSubmitting(false); }
   }, [open]);
 
   useEffect(() => {
@@ -1106,9 +1110,42 @@ function InscricaoModal({ open, onClose, t }) {
     return Object.keys(e).length === 0;
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    if (validate()) setStep(1);
+    if (!validate() || submitting) return;
+    setSubmitting(true);
+
+    const payload = {
+      nome: form.nome.trim(),
+      email: form.email.trim(),
+      whatsapp: form.whatsapp.trim(),
+      empresa: form.empresa.trim(),
+      evento: "Imersão Presencial IA · Matte · Uberlândia 11/06",
+      preco: t.price,
+      origem: typeof window !== "undefined" ? window.location.href : "",
+      timestamp: new Date().toISOString(),
+    };
+
+    // Fire-and-forget: send lead to webhook, then go to checkout.
+    // sendBeacon ensures delivery even if the page unloads to redirect.
+    try {
+      const body = JSON.stringify(payload);
+      const sent = typeof navigator !== "undefined" && navigator.sendBeacon
+        ? navigator.sendBeacon(WEBHOOK_URL, new Blob([body], { type: "application/json" }))
+        : false;
+      if (!sent) {
+        // sendBeacon unavailable or refused — fall back to fetch with keepalive
+        fetch(WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+          keepalive: true,
+          mode: "no-cors",
+        }).catch(() => {});
+      }
+    } catch (_) { /* never block checkout on lead capture */ }
+
+    window.location.href = CHECKOUT_URL;
   };
 
   const fmtPhone = (v) => {
@@ -1181,8 +1218,8 @@ function InscricaoModal({ open, onClose, t }) {
                 <div style={{
                   marginTop: 12, display: "flex", flexDirection: "column", gap: 10,
                 }}>
-                  <CTA size="lg" variant="accent" full>
-                    Ir para o pagamento · R$ {t.price}
+                  <CTA size="lg" variant="accent" full disabled={submitting}>
+                    {submitting ? "Redirecionando…" : `Ir para o pagamento · R$ ${t.price}`}
                   </CTA>
                   <span className="mono" style={{
                     fontSize: 10, color: "var(--muted)",
@@ -1272,9 +1309,7 @@ function App() {
     document.documentElement.style.setProperty("--accent-rgb", `${r}, ${g}, ${b}`);
   }, [t.accent]);
 
-  const onCTA = () => {
-    window.location.href = "https://payfast.greenn.com.br/cxjp7vq/offer/zTl8ol";
-  };
+  const onCTA = () => setModal(true);
 
   return (
     <>
