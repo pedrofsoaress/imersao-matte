@@ -1,0 +1,13 @@
+{
+  "name": "imersao-matte",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Landing page · Imersão Presencial IA · Matte · Uberlândia 11/06",
+  "scripts": {
+    "build": "esbuild app.jsx components.jsx tweaks-panel.jsx --minify --outdir=build --target=es2018",
+    "dev": "python3 -m http.server 8080"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.2"
+  }
+}
