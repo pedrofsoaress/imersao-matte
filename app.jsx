@@ -103,7 +103,15 @@ function Hero({ t, onCTA }) {
       padding: "clamp(24px, 6vw, 56px) var(--pad) clamp(60px, 10vw, 110px)",
       borderBottom: "1px solid var(--line)",
       overflow: "hidden",
+      isolation: "isolate",
     }}>
+      {/* shader animation backdrop (Matte-tinted) */}
+      <ShaderAnimation opacity={0.55} />
+      {/* dark vignette to keep headline readable on top of the shader */}
+      <div aria-hidden style={{
+        position: "absolute", inset: 0, pointerEvents: "none",
+        background: "linear-gradient(180deg, rgba(10,9,8,.35) 0%, rgba(10,9,8,.55) 60%, var(--bg) 100%)",
+      }} />
       {/* faint editorial baseline */}
       <div aria-hidden style={{
         position: "absolute", inset: 0, pointerEvents: "none",

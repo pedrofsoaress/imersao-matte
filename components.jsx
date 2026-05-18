@@ -115,7 +115,125 @@ function CTA({ children, onClick, variant = "primary", size = "md", style, full 
   );
 }
 
+// ─── shader animation (matte-tinted radial line waves) ────────────
+function ShaderAnimation({ opacity = 0.45 }) {
+  const containerRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!containerRef.current || typeof THREE === "undefined") return;
+    const container = containerRef.current;
+
+    const vertexShader = `
+      void main() { gl_Position = vec4(position, 1.0); }
+    `;
+    const fragmentShader = `
+      precision highp float;
+      uniform vec2 resolution;
+      uniform float time;
+      void main(void) {
+        vec2 uv = (gl_FragCoord.xy * 2.0 - resolution.xy) / min(resolution.x, resolution.y);
+        float t = time * 0.05;
+        float lineWidth = 0.0025;
+        vec3 color = vec3(0.0);
+        for (int j = 0; j < 3; j++) {
+          float intensity = 0.0;
+          for (int i = 0; i < 5; i++) {
+            intensity += lineWidth * float(i * i) /
+              abs(fract(t - 0.01 * float(j) + float(i) * 0.01) * 5.0
+                  - length(uv) + mod(uv.x + uv.y, 0.2));
+          }
+          vec3 tint;
+          if (j == 0)      tint = vec3(0.831, 0.102, 0.357); // #D41A5B matte accent
+          else if (j == 1) tint = vec3(0.910, 0.282, 0.502); // #E84880 hot pink
+          else             tint = vec3(0.910, 0.365, 0.235); // #E85D3C ember
+          color += intensity * tint;
+        }
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `;
+
+    const camera = new THREE.Camera();
+    camera.position.z = 1;
+    const scene = new THREE.Scene();
+    const geometry = new THREE.PlaneGeometry(2, 2);
+    const uniforms = {
+      time: { value: 1.0 },
+      resolution: { value: new THREE.Vector2() },
+    };
+    const material = new THREE.ShaderMaterial({ uniforms, vertexShader, fragmentShader });
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    container.appendChild(renderer.domElement);
+    renderer.domElement.style.display = "block";
+    renderer.domElement.style.width = "100%";
+    renderer.domElement.style.height = "100%";
+
+    const onResize = () => {
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      renderer.setSize(w, h);
+      uniforms.resolution.value.x = renderer.domElement.width;
+      uniforms.resolution.value.y = renderer.domElement.height;
+    };
+    onResize();
+    window.addEventListener("resize", onResize);
+
+    let animId;
+    let running = true;
+    const animate = () => {
+      if (!running) return;
+      animId = requestAnimationFrame(animate);
+      uniforms.time.value += 0.05;
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting && !running) { running = true; animate(); }
+        else if (!e.isIntersecting && running) { running = false; cancelAnimationFrame(animId); }
+      });
+    }, { threshold: 0 });
+    io.observe(container);
+
+    return () => {
+      running = false;
+      io.disconnect();
+      window.removeEventListener("resize", onResize);
+      cancelAnimationFrame(animId);
+      if (renderer.domElement.parentNode === container) {
+        container.removeChild(renderer.domElement);
+      }
+      geometry.dispose();
+      material.dispose();
+      renderer.dispose();
+    };
+  }, []);
+
+  return (
+    <div ref={containerRef} aria-hidden style={{
+      position: "absolute", inset: 0,
+      width: "100%", height: "100%",
+      opacity,
+      pointerEvents: "none",
+      mixBlendMode: "screen",
+    }} />
+  );
+}
+
 // ─── wordmark ──────────────────────────────────────────────────────
+function MatteLogo({ size = 18 }) {
+  return (
+    <svg viewBox="0 0 100 100" width={size * 1.15} height={size * 1.15}
+      style={{ display: "block", color: "var(--accent)" }}
+      fill="currentColor" aria-hidden="true">
+      <path d="M 25 5 L 95 5 L 95 72 L 68 72 L 20 100 L 5 80 L 50 35 L 25 35 Z" />
+    </svg>
+  );
+}
+
 function MatteWordmark({ size = 18, color = "var(--ink)" }) {
   return (
     <span style={{
@@ -123,11 +241,7 @@ function MatteWordmark({ size = 18, color = "var(--ink)" }) {
       fontSize: size, letterSpacing: "-0.02em", color,
       display: "inline-flex", alignItems: "center", gap: 8,
     }}>
-      <span aria-hidden style={{
-        width: size * 0.55, height: size * 0.55, borderRadius: 2,
-        background: "var(--ink)", display: "inline-block",
-        boxShadow: "inset -1px -1px 0 rgba(0,0,0,.5), inset 1px 1px 0 rgba(255,255,255,.18)",
-      }} />
+      <MatteLogo size={size} />
       matte
       <span style={{ color: "var(--muted)", fontWeight: 400, marginLeft: 2 }}>/</span>
       <span style={{ color: "var(--muted)", fontWeight: 400 }}>uberlândia</span>
