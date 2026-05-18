@@ -1253,7 +1253,9 @@ function App() {
     document.documentElement.style.setProperty("--accent-rgb", `${r}, ${g}, ${b}`);
   }, [t.accent]);
 
-  const onCTA = () => setModal(true);
+  const onCTA = () => {
+    window.location.href = "https://payfast.greenn.com.br/cxjp7vq/offer/zTl8ol";
+  };
 
   return (
     <>
