@@ -1126,26 +1126,32 @@ function InscricaoModal({ open, onClose, t }) {
       timestamp: new Date().toISOString(),
     };
 
-    // Fire-and-forget: send lead to webhook, then go to checkout.
-    // sendBeacon ensures delivery even if the page unloads to redirect.
+    // Fire-and-forget lead to webhook, then go to checkout.
+    // Form-encoded (URLSearchParams) is a "simple" content type for CORS —
+    // it skips preflight and works reliably with sendBeacon cross-origin.
+    const params = new URLSearchParams();
+    Object.entries(payload).forEach(([k, v]) => params.append(k, String(v)));
+
+    let queued = false;
     try {
-      const body = JSON.stringify(payload);
-      const sent = typeof navigator !== "undefined" && navigator.sendBeacon
-        ? navigator.sendBeacon(WEBHOOK_URL, new Blob([body], { type: "application/json" }))
+      queued = typeof navigator !== "undefined" && navigator.sendBeacon
+        ? navigator.sendBeacon(WEBHOOK_URL, params)
         : false;
-      if (!sent) {
-        // sendBeacon unavailable or refused — fall back to fetch with keepalive
+    } catch (_) { queued = false; }
+
+    if (!queued) {
+      try {
         fetch(WEBHOOK_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body,
-          keepalive: true,
+          body: params,
           mode: "no-cors",
+          keepalive: true,
         }).catch(() => {});
-      }
-    } catch (_) { /* never block checkout on lead capture */ }
+      } catch (_) {}
+    }
 
-    window.location.href = CHECKOUT_URL;
+    // Tiny delay so the request flushes before navigating (belt + suspenders).
+    setTimeout(() => { window.location.href = CHECKOUT_URL; }, 150);
   };
 
   const fmtPhone = (v) => {
