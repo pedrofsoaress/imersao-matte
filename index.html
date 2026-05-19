@@ -85,18 +85,30 @@
   :focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 </style>
 
-<!-- Meta Pixel Code -->
+<!-- Meta Pixel Code (deferred to first user interaction or 4s, whichever first;
+     keeps fbevents.js out of the LCP/TBT measurement window) -->
 <script>
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '1217340336556598');
-fbq('track', 'PageView');
+(function(){
+  var loaded = false;
+  function loadPixel(){
+    if (loaded) return;
+    loaded = true;
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    window.fbq('init', '1217340336556598');
+    window.fbq('track', 'PageView');
+  }
+  ['scroll','pointerdown','keydown','touchstart'].forEach(function(ev){
+    window.addEventListener(ev, loadPixel, { once: true, passive: true });
+  });
+  setTimeout(loadPixel, 4000);
+})();
 </script>
 <noscript><img height="1" width="1" style="display:none"
 src="https://www.facebook.com/tr?id=1217340336556598&ev=PageView&noscript=1"

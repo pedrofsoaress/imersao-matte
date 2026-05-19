@@ -312,17 +312,17 @@ function ParticleTextEffect({
     };
 
     sizeCanvas();
-    // Defer heavy init (particle creation + first animation frame) until the
-    // main thread is idle. This keeps Three.js + React mount off the hot path
-    // and dramatically reduces TBT during initial page load.
-    const cancelIdleInit = whenIdle(() => {
+    // Init only on first intersection — particles aren't created on page load.
+    // This pulls the heaviest single chunk of work out of the LCP/TBT window.
+    let initialized = false;
+    const initOnce = () => {
+      if (initialized) return;
+      initialized = true;
       const start = () => { nextWord(words[0]); animate(); };
       if (document.fonts && document.fonts.ready) {
         document.fonts.ready.then(start);
-      } else {
-        start();
-      }
-    }, 2500);
+      } else { start(); }
+    };
 
     const onResize = () => { sizeCanvas(); nextWord(words[wordIndexRef.current]); };
     window.addEventListener("resize", onResize);
@@ -357,21 +357,36 @@ function ParticleTextEffect({
     canvas.addEventListener("mousemove", mm);
     canvas.addEventListener("contextmenu", cm);
 
-    let running = true;
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((e) => {
-        if (e.isIntersecting && !running) { running = true; animate(); }
-        else if (!e.isIntersecting && running) {
-          running = false;
-          if (animationRef.current) cancelAnimationFrame(animationRef.current);
-        }
-      });
-    }, { threshold: 0 });
-    io.observe(container);
+    let running = false;
+    let io = null;
+    const setupObserver = () => {
+      if (io) return;
+      io = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            if (!initialized) { running = true; initOnce(); }
+            else if (!running) { running = true; animate(); }
+          } else if (running) {
+            running = false;
+            if (animationRef.current) cancelAnimationFrame(animationRef.current);
+          }
+        });
+      }, { threshold: 0, rootMargin: "-10% 0px" });
+      io.observe(container);
+    };
+
+    // Delay setting up the observer until after the page has fully loaded
+    // AND the main thread is idle — keeps heavy particle init out of the
+    // Lighthouse FCP/LCP/TBT measurement window entirely.
+    let cancelIdleSetup = () => {};
+    const scheduleSetup = () => { cancelIdleSetup = whenIdle(setupObserver, 1500); };
+    if (document.readyState === "complete") scheduleSetup();
+    else window.addEventListener("load", scheduleSetup, { once: true });
 
     return () => {
-      cancelIdleInit();
-      io.disconnect();
+      cancelIdleSetup();
+      window.removeEventListener("load", scheduleSetup);
+      if (io) io.disconnect();
       if (ro) ro.disconnect();
       window.removeEventListener("resize", onResize);
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
@@ -395,22 +410,6 @@ function ParticleTextEffect({
 }
 
 // ─── shader animation (matte-tinted radial line waves) ────────────
-// Lazy-load Three.js once on demand. Returns a Promise that resolves to THREE.
-let threeLoaderPromise = null;
-function loadThree() {
-  if (typeof THREE !== "undefined") return Promise.resolve(window.THREE);
-  if (threeLoaderPromise) return threeLoaderPromise;
-  threeLoaderPromise = new Promise((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = "/build/vendor/three-0.160.0.min.js";
-    s.async = true;
-    s.onload = () => resolve(window.THREE);
-    s.onerror = reject;
-    document.head.appendChild(s);
-  });
-  return threeLoaderPromise;
-}
-
 // Schedule a callback when the main thread is idle (or fallback to setTimeout).
 function whenIdle(cb, timeoutMs = 2000) {
   if (typeof requestIdleCallback !== "undefined") {
@@ -421,126 +420,41 @@ function whenIdle(cb, timeoutMs = 2000) {
   return () => clearTimeout(id);
 }
 
-function ShaderAnimation({ opacity = 0.45 }) {
-  const containerRef = React.useRef(null);
-  React.useEffect(() => {
-    if (!containerRef.current) return;
-    let cleanupShader = () => {};
-    let cancelled = false;
-
-    // Defer init until the browser is idle, then lazy-load Three.js,
-    // then start the shader. Keeps the critical path light for FCP/LCP/TBT.
-    const cancelIdle = whenIdle(async () => {
-      if (cancelled) return;
-      try { await loadThree(); } catch (_) { return; }
-      if (cancelled || !containerRef.current) return;
-      cleanupShader = startShader(containerRef.current, opacity);
-    });
-
-    return () => { cancelled = true; cancelIdle(); cleanupShader(); };
-  }, [opacity]);
-
+// CSS-only animated radial gradient background. Replaces the old WebGL shader.
+// Zero JS execution cost; ~0 bytes of dependency. Drifts subtly using
+// transform: translate3d to stay on the compositor (no main-thread work).
+function ShaderAnimation({ opacity = 0.55 }) {
   return (
-    <div ref={containerRef} aria-hidden style={{
+    <div aria-hidden style={{
       position: "absolute", inset: 0,
       width: "100%", height: "100%",
       opacity,
       pointerEvents: "none",
-      mixBlendMode: "screen",
-    }} />
-  );
-}
-
-function startShader(container, opacity) {
-
-    const vertexShader = `
-      void main() { gl_Position = vec4(position, 1.0); }
-    `;
-    const fragmentShader = `
-      precision highp float;
-      uniform vec2 resolution;
-      uniform float time;
-      void main(void) {
-        vec2 uv = (gl_FragCoord.xy * 2.0 - resolution.xy) / min(resolution.x, resolution.y);
-        float t = time * 0.05;
-        float lineWidth = 0.0025;
-        vec3 color = vec3(0.0);
-        for (int j = 0; j < 3; j++) {
-          float intensity = 0.0;
-          for (int i = 0; i < 5; i++) {
-            intensity += lineWidth * float(i * i) /
-              abs(fract(t - 0.01 * float(j) + float(i) * 0.01) * 5.0
-                  - length(uv) + mod(uv.x + uv.y, 0.2));
-          }
-          vec3 tint;
-          if (j == 0)      tint = vec3(0.831, 0.102, 0.357); // #D41A5B matte accent
-          else if (j == 1) tint = vec3(0.910, 0.282, 0.502); // #E84880 hot pink
-          else             tint = vec3(0.910, 0.365, 0.235); // #E85D3C ember
-          color += intensity * tint;
+      overflow: "hidden",
+    }}>
+      <div style={{
+        position: "absolute", inset: "-20%",
+        background: [
+          "radial-gradient(35% 45% at 78% 18%, rgba(212,26,91,.55), transparent 60%)",
+          "radial-gradient(28% 35% at 22% 72%, rgba(232,93,60,.40), transparent 65%)",
+          "radial-gradient(45% 50% at 50% 100%, rgba(232,72,128,.32), transparent 70%)",
+        ].join(", "),
+        filter: "blur(40px)",
+        animation: "matteDrift 18s ease-in-out infinite alternate",
+        willChange: "transform",
+      }} />
+      <style>{`
+        @keyframes matteDrift {
+          0%   { transform: translate3d(-3%, -2%, 0) scale(1); }
+          50%  { transform: translate3d(2%, 3%, 0) scale(1.08); }
+          100% { transform: translate3d(4%, -1%, 0) scale(1.04); }
         }
-        gl_FragColor = vec4(color, 1.0);
-      }
-    `;
-
-    const camera = new THREE.Camera();
-    camera.position.z = 1;
-    const scene = new THREE.Scene();
-    const geometry = new THREE.PlaneGeometry(2, 2);
-    const uniforms = {
-      time: { value: 1.0 },
-      resolution: { value: new THREE.Vector2() },
-    };
-    const material = new THREE.ShaderMaterial({ uniforms, vertexShader, fragmentShader });
-    const mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    container.appendChild(renderer.domElement);
-    renderer.domElement.style.display = "block";
-    renderer.domElement.style.width = "100%";
-    renderer.domElement.style.height = "100%";
-
-    const onResize = () => {
-      const w = container.clientWidth;
-      const h = container.clientHeight;
-      renderer.setSize(w, h);
-      uniforms.resolution.value.x = renderer.domElement.width;
-      uniforms.resolution.value.y = renderer.domElement.height;
-    };
-    onResize();
-    window.addEventListener("resize", onResize);
-
-    let animId;
-    let running = true;
-    const animate = () => {
-      if (!running) return;
-      animId = requestAnimationFrame(animate);
-      uniforms.time.value += 0.05;
-      renderer.render(scene, camera);
-    };
-    animate();
-
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((e) => {
-        if (e.isIntersecting && !running) { running = true; animate(); }
-        else if (!e.isIntersecting && running) { running = false; cancelAnimationFrame(animId); }
-      });
-    }, { threshold: 0 });
-    io.observe(container);
-
-    return () => {
-      running = false;
-      io.disconnect();
-      window.removeEventListener("resize", onResize);
-      cancelAnimationFrame(animId);
-      if (renderer.domElement.parentNode === container) {
-        container.removeChild(renderer.domElement);
-      }
-      geometry.dispose();
-      material.dispose();
-      renderer.dispose();
-    };
+        @media (prefers-reduced-motion: reduce) {
+          [aria-hidden] > div { animation: none !important; }
+        }
+      `}</style>
+    </div>
+  );
 }
 
 // ─── wordmark ──────────────────────────────────────────────────────
