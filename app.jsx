@@ -124,7 +124,7 @@ function Hero({ t, onCTA }) {
         {/* meta row — data + local em destaque */}
         <Reveal style={{
           display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center",
-          marginBottom: 28,
+          marginBottom: 32,
         }}>
           <Tape>11 de junho · Uberlândia</Tape>
           <span className="mono" style={{
@@ -133,42 +133,30 @@ function Hero({ t, onCTA }) {
           }}>{t.vagasTotal} vagas presenciais</span>
         </Reveal>
 
-        {/* headline — Imersão de IA para Empresários */}
+        {/* headline — promessa concreta do evento */}
         <Reveal delay={60}>
           <h1 className="serif" style={{
-            fontSize: "clamp(44px, 10vw, 132px)",
-            lineHeight: 0.94,
-            letterSpacing: "-0.025em",
+            fontSize: "clamp(38px, 8vw, 104px)",
+            lineHeight: 0.98,
+            letterSpacing: "-0.022em",
             margin: 0,
             fontWeight: 400,
             textWrap: "balance",
+            maxWidth: "16ch",
           }}>
-            Imersão de <span className="it" style={{ color: "var(--accent)" }}>IA</span> para Empresários
+            Como se tornar um empresário que usa <span className="it" style={{ color: "var(--accent)" }}>IA</span> pra converter <span className="it" style={{ color: "var(--accent)" }}>57% mais</span> em poucos meses
           </h1>
         </Reveal>
 
-        {/* subhead com tema e pitch curto */}
+        {/* subhead curto */}
         <Reveal delay={140} style={{
-          marginTop: 24, maxWidth: 640,
-          fontSize: "clamp(16px, 2.2vw, 19px)",
+          marginTop: 28, maxWidth: 580,
+          fontSize: "clamp(16px, 2.1vw, 18px)",
           lineHeight: 1.55, color: "var(--ink-2)",
         }}>
           <p style={{ margin: 0 }}>
-            <span className="serif it" style={{ fontSize: "1.1em", color: "var(--ink)" }}>IA &amp; Growth</span> — como transformar curiosos em compradores. Em uma tarde, IA aplicada na sua operação comercial para <span style={{ color: "var(--ink)" }}>vender mais, atender melhor e converter mais leads</span>.
+            Uma tarde de <span style={{ color: "var(--ink)" }}>IA & Growth</span> aplicada na sua operação comercial. Você sai com playbook pronto pra aplicar na sua empresa já na segunda-feira.
           </p>
-        </Reveal>
-
-        {/* foto do evento anterior */}
-        <Reveal delay={200} style={{ marginTop: 36 }}>
-          <Photo
-            src={assetUrl("eventoPalco", "assets/evento-palco.jpg")}
-            alt="Edição anterior da imersão Matte"
-            ratio="16 / 9"
-            caption="edição anterior · sp"
-            objectPosition="center 35%"
-            loading="eager"
-            fetchpriority="high"
-          />
         </Reveal>
 
         {/* CTA row */}
