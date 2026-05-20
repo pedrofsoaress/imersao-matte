@@ -540,13 +540,13 @@ function Marquee({ items, color = "var(--ink)", separator = "✦" }) {
 }
 
 // ─── real photo with crop-marks frame ──────────────────────────────
-function Photo({ src, alt, ratio = "1 / 1", caption, objectPosition = "center" }) {
+function Photo({ src, alt, ratio = "1 / 1", caption, objectPosition = "center", fetchpriority, loading = "lazy" }) {
   return (
     <div style={{
       position: "relative", aspectRatio: ratio, overflow: "hidden",
       background: "var(--bg-3)", border: "1px solid var(--line-2)", borderRadius: 4,
     }}>
-      <img src={src} alt={alt} loading="lazy" style={{
+      <img src={src} alt={alt} loading={loading} fetchpriority={fetchpriority} style={{
         width: "100%", height: "100%", objectFit: "cover",
         objectPosition,
         display: "block",

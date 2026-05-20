@@ -121,60 +121,54 @@ function Hero({ t, onCTA }) {
       <div style={{
         maxWidth: "var(--maxw)", margin: "0 auto", position: "relative",
       }}>
-        {/* meta row */}
+        {/* meta row — data + local em destaque */}
         <Reveal style={{
           display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center",
-          marginBottom: 24,
+          marginBottom: 28,
         }}>
-          <Tape>Imersão presencial · Uberlândia</Tape>
+          <Tape>11 de junho · Uberlândia</Tape>
           <span className="mono" style={{
             color: "var(--muted)", fontSize: 11, letterSpacing: ".15em",
             textTransform: "uppercase",
-          }}>11 jun · {t.vagasTotal} vagas</span>
+          }}>{t.vagasTotal} vagas presenciais</span>
         </Reveal>
 
-        {/* tema do evento */}
-        <Reveal delay={40} style={{ marginBottom: 32 }}>
-          <span className="mono" style={{
-            display: "block",
-            fontSize: 10, letterSpacing: ".22em", textTransform: "uppercase",
-            color: "var(--muted)", marginBottom: 10,
-          }}>Tema</span>
-          <div className="serif" style={{
-            fontSize: "clamp(22px, 3.4vw, 38px)",
-            lineHeight: 1.1, letterSpacing: "-0.015em",
-            color: "var(--ink-2)",
-            textWrap: "balance",
-          }}>
-            <span className="it" style={{ color: "var(--accent)" }}>IA &amp; Growth</span>
-            <span style={{ color: "var(--muted)", margin: "0 .4em" }}>·</span>
-            Como transformar curiosos em compradores
-          </div>
-        </Reveal>
-
-        {/* headline */}
-        <Reveal delay={80}>
+        {/* headline — Imersão de IA para Empresários */}
+        <Reveal delay={60}>
           <h1 className="serif" style={{
-            fontSize: "clamp(40px, 9vw, 116px)",
-            lineHeight: 0.96,
+            fontSize: "clamp(44px, 10vw, 132px)",
+            lineHeight: 0.94,
             letterSpacing: "-0.025em",
             margin: 0,
             fontWeight: 400,
             textWrap: "balance",
           }}>
-            Sua empresa está crescendo na <span className="it" style={{ color: "var(--accent)" }}>velocidade</span> que <span style={{ display: "inline-block" }}>você quer</span><span style={{ color: "var(--accent)" }}>?</span>
+            Imersão de <span className="it" style={{ color: "var(--accent)" }}>IA</span> para Empresários
           </h1>
         </Reveal>
 
-        {/* subhead */}
-        <Reveal delay={160} style={{
-          marginTop: 28, maxWidth: 640,
+        {/* subhead com tema e pitch curto */}
+        <Reveal delay={140} style={{
+          marginTop: 24, maxWidth: 640,
           fontSize: "clamp(16px, 2.2vw, 19px)",
           lineHeight: 1.55, color: "var(--ink-2)",
         }}>
           <p style={{ margin: 0 }}>
-            Se a resposta for não, a sua <span style={{ color: "var(--ink)" }}>operação comercial</span> provavelmente está te segurando. Nesta imersão você aprende, na prática, como usar IA para <span className="serif it" style={{ fontSize: "1.1em", color: "var(--ink)" }}>vender mais, atender melhor e converter mais leads</span> — em uma única tarde.
+            <span className="serif it" style={{ fontSize: "1.1em", color: "var(--ink)" }}>IA &amp; Growth</span> — como transformar curiosos em compradores. Em uma tarde, IA aplicada na sua operação comercial para <span style={{ color: "var(--ink)" }}>vender mais, atender melhor e converter mais leads</span>.
           </p>
+        </Reveal>
+
+        {/* foto do evento anterior */}
+        <Reveal delay={200} style={{ marginTop: 36 }}>
+          <Photo
+            src={assetUrl("eventoPalco", "assets/evento-palco.jpg")}
+            alt="Edição anterior da imersão Matte"
+            ratio="16 / 9"
+            caption="edição anterior · sp"
+            objectPosition="center 35%"
+            loading="eager"
+            fetchpriority="high"
+          />
         </Reveal>
 
         {/* CTA row */}
